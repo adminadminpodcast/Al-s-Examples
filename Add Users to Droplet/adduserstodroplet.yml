@@ -1,0 +1,56 @@
+---
+- hosts: AddUsersDroplet
+  gather_facts: False
+
+  tasks:
+  - include_vars: users.yml
+
+  - name: install python 2
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+
+  - name: Change root password
+    user: name=root password={{ UBUNTU_COMMON_ROOT_PASSWORD|password_hash('sha512')  }}
+
+  - name: Add deploy user
+    user: name={{ item.username }} password={{ item.userpassword|password_hash('sha512')  }} shell=/bin/bash createhome=yes
+    with_items: "{{users}}"
+
+  - name: Add .ssh directories
+    file:
+     path=/home/{{ item.username }}/.ssh
+     state=directory
+     mode=0700
+     owner={{ item.username }}
+     group={{ item.group|default(item.username)  }}
+    with_items: "{{users}}"
+
+  - name: Add keys
+    copy:
+     src=/home/alister/ansiable/authorized_keys/{{ item.username }}
+     dest=/home/{{ item.username }}/.ssh/authorized_keys
+     owner={{ item.username }}
+     group={{ item.group|default(item.username) }}
+     mode=0644
+    with_items: "{{users}}"
+
+  - name: Sudoers | update sudoers file and validate
+    lineinfile: "dest=/etc/sudoers
+      insertafter=EOF
+      line='{{ item.username }} ALL=(ALL) NOPASSWD: ALL'
+      regexp='^{{ item.username }} .*'
+      state=present"
+    with_items: "{{users}}"
+
+  - name: Disallow root SSH access
+    lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PermitRootLogin"
+              line="PermitRootLogin no"
+              state=present
+
+  - name: Disallow password authentication
+    lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PasswordAuthentication"
+              line="PasswordAuthentication no"
+              state=present
+  - name: SSHD Restart
+    service: name=sshd state=restarted enabled=yes

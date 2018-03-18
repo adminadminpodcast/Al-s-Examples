@@ -1,0 +1,62 @@
+---
+- name: Setup LEMP on a DO Droplet
+  hosts: BasicLempDroplet
+  become: true
+  vars:
+    MySQL_root_pass: "Mysql root Password"
+
+  tasks:
+    - name: Upgrade all packages to the latest version
+      apt: update_cache=yes cache_valid_time=3600 upgrade=yes
+
+    - name: Set MySQL root password before installing
+      debconf: name='mysql-server' question='mysql-server/root_password' value='{{MySQL_root_pass | quote}}' vtype='password'
+
+    - name: Confirm MySQL root password before installing
+      debconf: name='mysql-server' question='mysql-server/root_password_again' value='{{MySQL_root_pass | quote}}' vtype='password'
+
+    - name: Install MySQL
+      apt: package={{ item }} state=installed force=yes update_cache=yes cache_valid_time=3600
+      with_items:
+        - mysql-server
+        - mysql-client
+        - python-mysqldb
+        - php-fpm
+        - php-mysql
+        - nginx
+        - vsftpd
+
+    - name: Deletes anonymous MySQL server user for localhost
+      mysql_user: user="" state="absent" login_password="{{ MySQL_root_pass }}" login_user=root
+
+    - name: Removes the MySQL test database
+      mysql_db: db=test state=absent login_password="{{ MySQL_root_pass }}" login_user=root
+
+    - name: Secures the MySQL root user
+      mysql_user: user="root" password="{{ MySQL_root_pass }}" host="{{ item }}" login_password="{{MySQL_root_pass}}" login_user=root
+      with_items:
+        - 127.0.0.1
+        - localhost
+        - ::1
+
+    - name: Add php.ini
+      copy:
+       src=files/php.ini
+       dest=/etc/php/7.0/fpm/php.ini
+       owner=root
+       group=root
+       mode=0644
+
+    - name: php7.0-fpm restart
+      service: name=php7.0-fpm state=restarted enabled=yes
+
+    - name: copy vsftpd config file
+      copy:
+       src=files/vsftpd.conf
+       dest=/etc/vsftpd.conf
+       owner=root
+       group=root
+       mode=0644
+
+    - name: Restart vsftpd
+      service: name=vsftpd state=restarted enabled=yes
