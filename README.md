@@ -1,7 +1,7 @@
-Al's Example Ansible Code I use to setup a LEMP Server from a ubunutu 
+Al's Example Ansible Code I use to setup a LEMP Server from Ubunutu Digital Ocean droplet template
 ========================
 
-Al Example Ansible Code i use to setup a Linux, Nginx, MySQL, PHP Stack from a Ubuntu Digital Ocean droplet template.
+Al Example Ansible Code i use to setup a Linux, Nginx, MySQL, PHP Stack from a Ubuntu 16.04 Digital Ocean droplet template.
 
 Add Users to Droplet
 ----------
