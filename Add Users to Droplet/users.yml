@@ -1,5 +1,5 @@
 ---
-UBUNTU_COMMON_ROOT_PASSWORD: < Put your rot password here >
+UBUNTU_COMMON_ROOT_PASSWORD: < Put your root password here >
 users:
  - username: user1
    userpassword: "user1password"
